@@ -1,7 +1,11 @@
 //! Chess pieces
 use crate::fen::{FromFENChar, FromFENError, ToFENChar};
 
-use super::{board::Board, color::Color, coordinate::Coordinate};
+use super::{
+    board::Board,
+    color::Color,
+    coordinate::{Coordinate, Rank},
+};
 
 use std::fmt::{Debug, Display};
 
@@ -23,7 +27,63 @@ impl Display for ColoredPiece {
 impl ColoredPiece {
     pub fn get_all_moves(&self, board: &Board, starting_square: Coordinate) -> Vec<Coordinate> {
         match self.piece {
-            Piece::Pawn => Vec::new(),
+            Piece::Pawn => {
+                let mut targets = Vec::new();
+
+                match self.color {
+                    Color::Black => {
+                        // if starting_square.rank == Rank::Rank7 {
+                        //     targets.push(starting_square.prev_rank().unwrap().prev_rank().unwrap());
+                        // }
+                        if let Some(next) = starting_square.prev_rank() {
+                            if board.get(next).is_none() {
+                                targets.push(next);
+                                if starting_square.rank == Rank::Rank7 {
+                                    let next_next = next.prev_rank().unwrap();
+                                    if board.get(next_next).is_none() {
+                                        targets.push(next_next);
+                                    }
+                                }
+                            }
+                        }
+                        if let Some(diag_1) = starting_square.prev_rank_prev_file() {
+                            if board.get(diag_1).is_white() {
+                                targets.push(diag_1);
+                            }
+                        }
+                        if let Some(diag_2) = starting_square.prev_rank_next_file() {
+                            if board.get(diag_2).is_white() {
+                                targets.push(diag_2);
+                            }
+                        }
+                    }
+                    Color::White => {
+                        if let Some(next) = starting_square.next_rank() {
+                            if board.get(next).is_none() {
+                                targets.push(next);
+                                if starting_square.rank == Rank::Rank2 {
+                                    let next_next = next.next_rank().unwrap();
+                                    if board.get(next_next).is_none() {
+                                        targets.push(next_next);
+                                    }
+                                }
+                            }
+                        }
+                        if let Some(diag_1) = starting_square.next_rank_next_file() {
+                            if board.get(diag_1).is_black() {
+                                targets.push(diag_1);
+                            }
+                        }
+                        if let Some(diag_2) = starting_square.next_rank_prev_file() {
+                            if board.get(diag_2).is_black() {
+                                targets.push(diag_2);
+                            }
+                        }
+                    }
+                }
+
+                targets
+            }
             Piece::Rook => {
                 let mut targets = Vec::new();
 
@@ -89,6 +149,35 @@ impl ColoredPiece {
             Piece::Bishop => Vec::new(),
             Piece::Queen => Vec::new(),
             Piece::King => Vec::new(),
+        }
+    }
+
+    pub fn is_black(&self) -> bool {
+        self.color == Color::Black
+    }
+
+    pub fn is_white(&self) -> bool {
+        self.color == Color::White
+    }
+}
+
+pub trait ColoredPieceOption {
+    fn is_black(&self) -> bool;
+    fn is_white(&self) -> bool;
+}
+
+impl ColoredPieceOption for Option<ColoredPiece> {
+    fn is_black(&self) -> bool {
+        match self {
+            Self::Some(piece) => piece.is_black(),
+            None => false,
+        }
+    }
+
+    fn is_white(&self) -> bool {
+        match self {
+            Self::Some(piece) => piece.is_white(),
+            None => false,
         }
     }
 }
